@@ -54,14 +54,70 @@ app.post("/newcontact", (req, res) => {
      */
     const newEntry = {
         parent: { "type": "database_id", "database_id": process.env.NOTION_DATABASE_ID },
+
         properties: {
-            'First Name': { title: [{ text: { content: req.body.data.firstName } }] },
-            'Last Name': { title: [{ text: { content: req.body.data.lastName } }] },
-            'Email': { rich_text: [{ text: { content: req.body.data.email } }] },
-            'Phone': { rich_text: [{ text: { content: req.body.data.phone } }] },
-            'Location': { rich_text: [{ text: { content: req.body.data.location } }] },
-            'Lead Source': { rich_text: [{ text: { content: req.body.data.source } }] },
-            'Service': { rich_text: [{ text: { content: req.body.data.service } }] }
+            "First Name": {
+                "rich_text": [
+                    {
+                        "type": "text",
+                        "text": {
+                            "content": req.body.data.firstName
+                        }
+                    }
+                ]
+            },
+            "Last Name": {
+                "rich_text": [
+                    {
+                        "type": "text",
+                        "text": {
+                            "content": req.body.data.lastName
+                        }
+                    }
+                ]
+            },
+            "Email": {
+                "email": req.body.data.email
+            },
+            "Phone": {
+                "phone_number": req.body.data.phone
+            },
+            "Service": {
+                "rich_text": [
+                    {
+                        "type": "text",
+                        "text": {
+                            "content": req.body.data.service
+                        }
+                    }
+                ]
+            },
+            "Location": {
+                "rich_text": [
+                    {
+                        "type": "text",
+                        "text": {
+                            "content": req.body.data.location
+                        }
+                    }
+                ]
+            },
+            "Lead Source": {
+                "rich_text": [
+                    {
+                        "type": "text",
+                        "text": {
+                            "content": req.body.data.source
+                        }
+                    }
+                ]
+            },
+            "Status": {
+                "status": {
+                    "name": "Lead Generated"
+                }
+            },
+
         }
     }
     // Making POST request to Notion database
@@ -108,6 +164,8 @@ app.get("/newcontact", (req, res) => {
             error: err
         })
     })
+
+    GetNotionDatabase()
 })
 
 app.get("/newcontact/:contactID", (req, res) => {
