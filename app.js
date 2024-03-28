@@ -54,8 +54,8 @@ app.post("/newcontact", (req, res) => {
      */
     const newEntry = {
         parent: { "type": "database_id", "database_id": process.env.NOTION_DATABASE_ID },
-
         properties: { 
+            "Name": { "type": "title", "title": [{ "type": "text", "text": { "content": `${req.body.data.firstName} ${req.body.data.lastName}` } }] },
             "First Name": { "rich_text": [{ "type": "text", "text": { "content": req.body.data.firstName } }] },
             "Last Name": { "rich_text": [{ "type": "text", "text": { "content": req.body.data.lastName } }] },
             "Email": { "email": req.body.data.email },
@@ -63,10 +63,10 @@ app.post("/newcontact", (req, res) => {
             "Service": { "rich_text": [{ "type": "text", "text": { "content": req.body.data.service } }] },
             "Location": { "rich_text": [{ "type": "text", "text": { "content": req.body.data.location } }] },
             "Lead Source": { "rich_text": [{ "type": "text", "text": { "content": req.body.data.source } }] },
-            "Status": { "status": { "name": "Lead Generated" } },
-
+            "Status": { "status": { "name": "Lead Generated" } }
         }
     }
+    
     // Making POST request to Notion database
     async function createDatabaseEntry() {
         try {
