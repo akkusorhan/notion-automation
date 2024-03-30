@@ -1,6 +1,7 @@
 const express = require("express");
 const mongoose = require("mongoose");
 const { Client } = require("@notionhq/client")
+const GmailLogic = require("./GmailLogic")
 require("dotenv").config()
 
 const app = express()
@@ -82,6 +83,8 @@ app.post("/newcontact", (req, res) => {
 })
 
 app.get("/newcontact", (req, res) => {
+    const randomText = "text"
+    GmailLogic(randomText)
     Contact.find()
     .select("data firstName lastName email phone service location source")
     .exec()
@@ -111,8 +114,6 @@ app.get("/newcontact", (req, res) => {
             error: err
         })
     })
-
-    GetNotionDatabase()
 })
 
 app.get("/newcontact/:contactID", (req, res) => {
