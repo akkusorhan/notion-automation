@@ -1,28 +1,28 @@
-// // OAuth2 client using service account credentials
-// const jwtClient = new JWT({
-//     email: SERVICE_ACCOUNT_EMAIL,
-//     key: PRIVATE_KEY,
-//     scopes: ['https://www.googleapis.com/auth/gmail.send', 'https://www.googleapis.com/auth/gmail.readonly'],
-//     redirectUri: 'urn:ietf:wg:oauth:2.0:oob' // Placeholder redirect URI
+// OAuth2 client using service account credentials
+const jwtClient = new JWT({
+    email: SERVICE_ACCOUNT_EMAIL,
+    key: PRIVATE_KEY,
+    scopes: ['https://www.googleapis.com/auth/gmail.send', 'https://www.googleapis.com/auth/gmail.readonly'],
+    redirectUri: 'urn:ietf:wg:oauth:2.0:oob' // Placeholder redirect URI
 
-// })
+})
 
-// // OAuth2 authentication
-// async function authenticate() {
-//     try {
-//         await jwtClient.authorize();
-//         console.log("Authentication successful") //jwtClient.credentials
-//         // Log access token
-//         // console.log("Access Token:", jwtClient.credentials.access_token);
-//         return jwtClient.credentials.access_token;
+// OAuth2 authentication
+async function authenticate() {
+    try {
+        await jwtClient.authorize();
+        console.log("Authentication successful") //jwtClient.credentials
+        // Log access token
+        // console.log("Access Token:", jwtClient.credentials.access_token);
+        return jwtClient.credentials.access_token;
 
-//     } catch (error) {
-//         console.log("Error occurred during authentication: ", error)
-//     }
-// }
+    } catch (error) {
+        console.log("Error occurred during authentication: ", error)
+    }
+}
 
 // Initialize authentication
-// authenticate()
+authenticate()
 
 // Send email function
 async function sendEmail() {
@@ -44,7 +44,7 @@ async function sendEmail() {
 
         // Define email options
         const mailOptions = {
-            from: ""
+            from: "",
             to: "",
             subject: "Test Email",
             text: "This is a test email"

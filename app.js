@@ -1,14 +1,12 @@
 const express = require("express");
 const mongoose = require("mongoose");
 const { Client } = require("@notionhq/client")
+const { google } = require("googleapis")
+const { JWT } = require('google-auth-library');
 const GmailLogic = require("./GmailLogic")
 require("dotenv").config()
 
 const nodemailer = require("nodemailer")
-
-
-const { google } = require("googleapis")
-const { JWT } = require('google-auth-library');
 const bodyParser = require('body-parser');
 
 const app = express()
@@ -22,13 +20,80 @@ app.use(express.json())
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 
+/**
+ * Handling OAuth
+ */
+const privateKey = process.env.PRIVATE_KEY
+const serviceAccountEmail = process.env.SERVICE_ACCOUNT_EMAIL
+
+// Auth credentials & scope
+const auth = new google.auth.JWT({
+    email: serviceAccountEmail,
+    key: privateKey,
+    scopes: [
+        'https://www.googleapis.com/auth/gmail.send',
+        'https://www.googleapis.com/auth/gmail.readonly',
+        'https://www.googleapis.com/auth/contacts'
+    ]
+})
+
+async function authenticate() {
+    try {
+        await auth.authorize() // This will automatically obtain and set the access token
+        console.log("Authorization successful")
+        return auth.credentials.access_token
+    } catch (error) {
+        console.error('Error occurred during authentication:', error);
+    }
+}
+
+/**
+ * Handling Google Contacts/People API
+ */
+const contacts = google.people({
+    version: "v1",
+    auth: auth
+})
+
+// Create the contact
+async function createContact() {
+    try {
+        const contactData = {
+            "names": [
+                {
+                    "givenName": "Owen",
+                    "familyName": "Zurich"
+                }
+            ],
+            "emailAddresses": [
+                {
+                    "value": "owenzurich@gmail.com"
+                }
+            ],
+            "phoneNumbers": [
+                {
+                    "value": "2812434597"
+                }
+            ]
+        }
+
+        const response = await contacts.people.createContact({
+            requestBody: contactData
+        })
+        console.log('Contact created successfully:', response.data);
+    } catch (error) {
+        console.error('Error occurred while creating contact:', error);
+    }
+}
+
+
 // Send email function
 async function sendEmail() {
     try {
         const transporter = nodemailer.createTransport({
             service: "gmail",
             auth: {
-                user: process.env.SENDER_EMAIL, // process.env.SERVICE_ACCOUNT_EMAIL,
+                user: process.env.SENDER_EMAIL, 
                 pass: process.env.SMTP_APP_PASSWORD
             },
             authMethod: "PLAIN"
@@ -52,7 +117,9 @@ async function sendEmail() {
 
 async function emailAutomation() {
     try {
+        await authenticate()
         await sendEmail()
+        await createContact()
     } catch (error) {
         console.log(error)
     }
