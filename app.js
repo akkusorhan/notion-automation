@@ -4,6 +4,8 @@ const { Client } = require("@notionhq/client")
 const { google } = require("googleapis")
 const { JWT } = require('google-auth-library');
 const GmailLogic = require("./GmailLogic")
+const saveToMongoDB = require("./saveToMongoDB")
+const createNotionDatabaseEntry = require("./createNotionDatabaseEntry")
 require("dotenv").config()
 
 const nodemailer = require("nodemailer")
@@ -26,73 +28,17 @@ app.post("/newcontact", (req, res) => {
     /**
      * Handle MongoDB POST Request
      */
-    const contact = new Contact({
-        id: new mongoose.Types.ObjectId(),
-        data: {
-            firstName: req.body.data.firstName,
-            lastName: req.body.data.lastName,
-            email: req.body.data.email,
-            phone: req.body.data.phone,
-            service: req.body.data.service,
-            location: req.body.data.location,
-            source: req.body.data.source
-        }
-    })
-    contact
-    .save()
-    .then(result => {
-        console.log(result)
-        res.status(201).json({
-            message: "Handling POST request to /newcontact",
-            createdContact: result,
-            request: {
-                type: "POST"
-            }
-        })
-    })
-    .catch(err => {
-        console.log(err)
-        res.status(500).json({
-            error: err
-        })
-    })
-
-    /**
-     * Send email campaign
-     */
-    const recipientFirstName = req.body.data.firstName
-    const recipientEmail = req.body.data.email
-    GmailLogic(recipientEmail, recipientFirstName)
+    saveToMongoDB(req, res)
 
     /**
      * Handle Notion API POST Request
      */
-    const newEntry = {
-        parent: { "type": "database_id", "database_id": process.env.NOTION_DATABASE_ID },
-        properties: { 
-            "Name": { "type": "title", "title": [{ "type": "text", "text": { "content": `${req.body.data.firstName} ${req.body.data.lastName}` } }] },
-            "First Name": { "rich_text": [{ "type": "text", "text": { "content": req.body.data.firstName } }] },
-            "Last Name": { "rich_text": [{ "type": "text", "text": { "content": req.body.data.lastName } }] },
-            "Email": { "email": req.body.data.email },
-            "Phone": { "phone_number": req.body.data.phone },
-            "Service": { "rich_text": [{ "type": "text", "text": { "content": req.body.data.service } }] },
-            "Location": { "rich_text": [{ "type": "text", "text": { "content": req.body.data.location } }] },
-            "Lead Source": { "rich_text": [{ "type": "text", "text": { "content": req.body.data.source } }] },
-            "Status": { "status": { "name": "Lead Generated" } }
-        }
-    }
+    createNotionDatabaseEntry(req)
     
-    // Making POST request to Notion database
-    async function createDatabaseEntry() {
-        try {
-            const response = await notion.pages.create(newEntry)
-            console.log("New Notion database entry created: ", response)
-        } catch (error) {
-            console.log("Error occured while trying to create Notion database entry", error)
-        }
-    }
-
-    createDatabaseEntry()
+    /**
+     * Initiate email campaign
+     */
+    GmailLogic(req)
 
 })
 
