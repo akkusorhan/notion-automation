@@ -5,6 +5,7 @@ const notion = new Client({ auth: process.env.NOTION_API_KEY })
 /**
  * Handle Notion API POST Request
  */
+let notionPageId
 async function createNotionDatabaseEntry(req) {
     try {
         const newEntry = {
@@ -23,10 +24,16 @@ async function createNotionDatabaseEntry(req) {
         }
         // Making POST request to Notion database
         const response = await notion.pages.create(newEntry)
-        console.log("New Notion database entry created: ", response)
+        // console.log("New Notion database entry created: ", response.url)
+        // console.log("New Notion database entry created: ", response.id)
+        notionPageId = response.id
+        console.log(`NOTION PAGE ID ${notionPageId}`)
     } catch (error) {
         console.log("Error occured while trying to create Notion database entry", error)
     }
 }
 
-module.exports = createNotionDatabaseEntry
+module.exports = {
+    createNotionDatabaseEntry: createNotionDatabaseEntry,
+    notionPageId: notionPageId
+}

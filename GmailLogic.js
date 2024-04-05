@@ -3,307 +3,121 @@ const schedule = require("node-schedule")
 const { google } = require("googleapis")
 const { JWT } = require('google-auth-library');
 const { Client } = require("@notionhq/client")
-
-const notion = new Client({ auth: process.env.NOTION_API_KEY })
 require("dotenv").config()
 
-const emailTemplates = require("./emailTemplates")
+const notion = new Client({ auth: process.env.NOTION_API_KEY }); //
+
+
+const emailFunctions = require("./emailFunctions")
+// const createNotionDatabaseEntry = require("./createNotionDatabaseEntry")
 
 /**
- * Handling OAuth
+ * Handle Notion API POST Request
  */
-const privateKey = process.env.PRIVATE_KEY
-const serviceAccountEmail = process.env.SERVICE_ACCOUNT_EMAIL
-
-// Auth credentials & scope
-const auth = new google.auth.JWT({
-    email: serviceAccountEmail,
-    key: privateKey,
-    scopes: [
-        'https://www.googleapis.com/auth/gmail.send',
-        'https://www.googleapis.com/auth/gmail.readonly',
-        // 'https://www.googleapis.com/auth/contacts'
-    ]
-})
-
-async function authenticate() {
+let notionPageId
+async function createNotionDatabaseEntry(req) {
     try {
-        await auth.authorize() // This will automatically obtain and set the access token
-        console.log("Authorization successful")
-        return auth.credentials.access_token
-    } catch (error) {
-        console.error('Error occurred during authentication:', error);
-    }
-}
-
-/**
- * Handling Google Contacts/People API
- */
-const contacts = google.people({
-    version: "v1",
-    auth: auth
-})
-
-// Create the contact
-async function createContact() {
-    try {
-        const contactData = {
-            "names": [
-                {
-                    "givenName": "Owen",
-                    "familyName": "Zurich"
-                }
-            ],
-            "emailAddresses": [
-                {
-                    "value": "owenzurich@gmail.com"
-                }
-            ],
-            "phoneNumbers": [
-                {
-                    "value": "2812434597"
-                }
-            ]
+        const newEntry = {
+            parent: { "type": "database_id", "database_id": process.env.NOTION_DATABASE_ID },
+            properties: {
+                "Name": { "type": "title", "title": [{ "type": "text", "text": { "content": `${req.body.data.firstName} ${req.body.data.lastName}` } }] },
+                "First Name": { "rich_text": [{ "type": "text", "text": { "content": req.body.data.firstName } }] },
+                "Last Name": { "rich_text": [{ "type": "text", "text": { "content": req.body.data.lastName } }] },
+                "Email": { "email": req.body.data.email },
+                "Phone": { "phone_number": req.body.data.phone },
+                "Service": { "rich_text": [{ "type": "text", "text": { "content": req.body.data.service } }] },
+                "Location": { "rich_text": [{ "type": "text", "text": { "content": req.body.data.location } }] },
+                "Lead Source": { "rich_text": [{ "type": "text", "text": { "content": req.body.data.source } }] },
+                "Status": { "status": { "name": "Lead Generated" } }
+            }
         }
-
-        const response = await contacts.people.createContact({
-            requestBody: contactData
-        })
-        console.log('Contact created successfully:', response.data);
+        // Making POST request to Notion database
+        const response = await notion.pages.create(newEntry)
+        // console.log("New Notion database entry created: ", response.url)
+        // console.log("New Notion database entry created: ", response.id)
+        notionPageId = response.id
+        // console.log(`NOTION PAGE ID ${notionPageId}`)
     } catch (error) {
-        console.error('Error occurred while creating contact:', error);
+        console.log("Error occured while trying to create Notion database entry", error)
     }
 }
-
 
 /**
  *  Email send functions
  */
-// Lead Generated Email
-async function sendInitialEmail(req) {
-    let recipientFirstName = req.body.data.firstName
-    let recipientEmail = req.body.data.email
-
+async function GmailLogic(req) {
     try {
-        const transporter = nodemailer.createTransport({
-            service: "gmail",
-            auth: {
-                user: process.env.SENDER_EMAIL,
-                pass: process.env.SMTP_APP_PASSWORD
-            },
-            authMethod: "PLAIN"
-        })
+        // Check current time in PST
+        let currentTimePST = new Date().toLocaleString("en-US", { timeZone: "America/Los_Angeles" });
+        let currentHourPST = new Date(currentTimePST).getHours();
 
-        // Define email options
-        const mailOptions = {
-            from: process.env.SENDER_EMAIL,
-            to: recipientEmail, // process.env.RECIPIENT_EMAIL,
-            subject: recipientFirstName == "{{contact.Name.First}}" ? emailTemplates.leadGeneratedSubject : `${recipientFirstName} - ${emailTemplates.leadGeneratedSubject}`,
-            // text: "This is a test email"
-            html: `
-                <p style="margin-bottom: 30px;">Hi ${recipientFirstName == "{{contact.Name.First}}" ? "There" : recipientFirstName},</p>
+        // Check if current time is within the specified time range (5am PST to 8pm PST)
+        while (currentHourPST < 5 || currentHourPST >= 20) {
+            // Wait for 1 hour before checking the time again
+            console.log("Current time is not within working hours, check again in 1 hour.")
+            await new Promise(resolve => setTimeout(resolve, 60 * 60 * 1000)); // 1 hour in milliseconds
 
-                ${emailTemplates.leadGeneratedBody}
-            `
+            // Update current time
+            const newTimePST = new Date().toLocaleString("en-US", { timeZone: "America/Los_Angeles" });
+            currentHourPST = new Date(newTimePST).getHours();
         }
+        console.log("Current time is within working hours, proceed with function.")
 
-        // Send email
-        const info = await transporter.sendMail(mailOptions)
-        console.log("Email sent successfully: ", info)
-    } catch (error) {
-        console.error("Error occurred while sending email: ", error)
-    }
-}
+        // POST to Notion DB
+        await createNotionDatabaseEntry(req)
 
-// First Follow Up Email
-async function sendFirstFollowUpEmail(req) {
-    let recipientFirstName = req.body.data.firstName
-    let recipientEmail = req.body.data.email
+        // Send First Email
+        await emailFunctions.sendInitialEmail(req)
+        console.log("Notion page id:" + notionPageId)
 
-    try {
-        const transporter = nodemailer.createTransport({
-            service: "gmail",
-            auth: {
-                user: process.env.SENDER_EMAIL,
-                pass: process.env.SMTP_APP_PASSWORD
-            },
-            authMethod: "PLAIN"
-        })
-
-        // Define email options
-        const mailOptions = {
-            from: process.env.SENDER_EMAIL,
-            to: recipientEmail, // process.env.RECIPIENT_EMAIL,
-            subject: recipientFirstName == "{{contact.Name.First}}" ? emailTemplates.firstFollowBuSubject : `${recipientFirstName} - ${emailTemplates.firstFollowBuSubject}`,
-            // text: "This is a test email"
-            html: `
-                <p style="margin-bottom: 30px;">Hi ${recipientFirstName == "{{contact.Name.First}}" ? "There" : recipientFirstName},</p>
-
-                ${emailTemplates.firstFollowUpBody}
-            `
-        }
-
-        // Send email
-        const info = await transporter.sendMail(mailOptions)
-        console.log("Email sent successfully: ", info)
-    } catch (error) {
-        console.error("Error occurred while sending email: ", error)
-    }
-}
-
-// Second Follow Up Email
-async function sendSecondFollowUpEmail(req) {
-    let recipientFirstName = req.body.data.firstName
-    let recipientEmail = req.body.data.email
-
-    try {
-        const transporter = nodemailer.createTransport({
-            service: "gmail",
-            auth: {
-                user: process.env.SENDER_EMAIL,
-                pass: process.env.SMTP_APP_PASSWORD
-            },
-            authMethod: "PLAIN"
-        })
-
-        // Define email options
-        const mailOptions = {
-            from: process.env.SENDER_EMAIL,
-            to: recipientEmail, // process.env.RECIPIENT_EMAIL,
-            subject: recipientFirstName == "{{contact.Name.First}}" ? emailTemplates.secondFollowUpSubject : `${recipientFirstName} - ${emailTemplates.secondFollowUpSubject}`,
-            // text: "This is a test email"
-            html: `
-                <p style="margin-bottom: 30px;">Hi ${recipientFirstName == "{{contact.Name.First}}" ? "There" : recipientFirstName},</p>
-
-                ${emailTemplates.secondFollowUpBody}
-            `
-        }
-
-        // Send email
-        const info = await transporter.sendMail(mailOptions)
-        console.log("Email sent successfully: ", info)
-    } catch (error) {
-        console.error("Error occurred while sending email: ", error)
-    }
-}
-
-// Final Follow Up Email
-async function sendFinalFollowUpEmail(req) {
-    let recipientFirstName = req.body.data.firstName
-    let recipientEmail = req.body.data.email
-
-    try {
-        const transporter = nodemailer.createTransport({
-            service: "gmail",
-            auth: {
-                user: process.env.SENDER_EMAIL,
-                pass: process.env.SMTP_APP_PASSWORD
-            },
-            authMethod: "PLAIN"
-        })
-
-        // Define email options
-        const mailOptions = {
-            from: process.env.SENDER_EMAIL,
-            to: recipientEmail, // process.env.RECIPIENT_EMAIL,
-            subject: recipientFirstName == "{{contact.Name.First}}" ? emailTemplates.finalFollowUpSubject : `${recipientFirstName} - ${emailTemplates.finalFollowUpSubject}`,
-            // text: "This is a test email"
-            html: `
-                <p style="margin-bottom: 30px;">Hi ${recipientFirstName == "{{contact.Name.First}}" ? "There" : recipientFirstName},</p>
-
-                ${emailTemplates.finalFollowUpBody}
-            `
-        }
-
-        // Send email
-        const info = await transporter.sendMail(mailOptions)
-        console.log("Email sent successfully: ", info)
-    } catch (error) {
-        console.error("Error occurred while sending email: ", error)
-    }
-}
-
-/**
- * Check For Received Email
- */
-async function searchEmailsBySender(req) {
-    try {
-        // Authenticate with Gmail API using JWT credentials
-        const auth2 = new google.auth.JWT({
-            email: serviceAccountEmail,
-            key: privateKey,
-            scopes: [
-                // 'https://www.googleapis.com/auth/gmail.send',
-                'https://www.googleapis.com/auth/gmail.readonly',
-                // 'https://www.googleapis.com/auth/contacts'
-            ]
-        });
-
-        // Obtain an access token
-        await auth.authorize();
-
-        // Perform a search query for emails from the sender
-        let senderEmail = req.body.data.email
-
-        // Initialize the Gmail API
-        const gmail = google.gmail({
-            version: 'v1',
-            auth: auth
-        });
-
-        const response = await gmail.users.messages.list({
-            userId: process.env.SENDER_EMAIL, // 'me', // 'me' refers to the authenticated user
-            q: `from:${senderEmail}`, // Search query to filter emails by sender
-        });
-
-        // Handle the response
-        const emails = response.data.messages;
-        if (emails && emails.length > 0) {
-            // Emails from the sender found
-            console.log(`Found ${emails.length} emails from ${senderEmail}:`);
-            emails.forEach((email) => {
-                console.log(`Email ID: ${email.id}`);
-                // You can retrieve more information about each email if needed
+        // Wait for 24 hours before calling the First Follow Up email
+        await new Promise(resolve => setTimeout(resolve, 24 * 60 * 60 * 1000))
+        const firstFollowUpResponse = await notion.pages.retrieve({ page_id: notionPageId });
+        console.log(firstFollowUpResponse)
+        if (firstFollowUpResponse.properties.Status.status.name !== "In Contact") {
+            await emailFunctions.sendFirstFollowUpEmail(req)
+            const pageId = notionPageId;
+            const response = await notion.pages.update({
+                page_id: pageId,
+                properties: { "Status": { "status": { "name": "First Follow Up" } } },
             });
-        } else {
-            console.log(`No emails found from ${senderEmail}`);
+            // console.log(response);
+            console.log("Status changed to: First Follow Up")
+        } else { null }
+
+        // Wait for 24 hours before calling the Second Follow Up email
+        await new Promise(resolve => setTimeout(resolve, 24 * 60 * 60 * 1000));
+        const secondFollowUpResponse = await notion.pages.retrieve({ page_id: notionPageId });
+        console.log(secondFollowUpResponse)
+        if (secondFollowUpResponse.properties.Status.status.name !== "In Contact") {
+            await emailFunctions.sendSecondFollowUpEmail(req)
+            const pageId = notionPageId;
+            const response = await notion.pages.update({
+                page_id: pageId,
+                properties: { "Status": { "status": { "name": "Second Follow Up" } } },
+            });
+            // console.log(response)
+            console.log("Status changed to: Second Follow Up")
         }
+
+        // Wait for 24 hours before calling the Final Follow Up email
+        await new Promise(resolve => setTimeout(resolve, 24 * 60 * 60 * 1000));
+        const finalFollowUpResponse = await notion.pages.retrieve({ page_id: notionPageId });
+        console.log(finalFollowUpResponse)
+        if (finalFollowUpResponse.properties.Status.status.name !== "In Contact") {
+            await emailFunctions.sendFinalFollowUpEmail(req)
+            const pageId = notionPageId;
+            const response = await notion.pages.update({
+                page_id: pageId,
+                properties: { "Status": { "status": { "name": "Archive" } } },
+            });
+            // console.log(response)
+            console.log("Status changed to: Archive")
+        }
+
     } catch (error) {
-        console.error('Error searching emails:', error);
+        console.log(error)
     }
-}
-
-
-
-
-function GmailLogic(req) {
-    async function emailAutomation() {
-        try {
-            await authenticate()
-
-            await sendInitialEmail(req)
-
-            // Wait for 30 seconds before calling the First Follow Up email
-            await new Promise(resolve => setTimeout(resolve, 10000));
-            await searchEmailsBySender(req)
-            await sendFirstFollowUpEmail(req);
-
-            // Wait for 30 seconds before calling the Second Follow Up email
-            await new Promise(resolve => setTimeout(resolve, 10000));
-            await searchEmailsBySender(req)
-            await sendSecondFollowUpEmail(req);
-
-            // Wait for 30 seconds before calling the Final Follow Up email
-            await new Promise(resolve => setTimeout(resolve, 10000));
-            await searchEmailsBySender(req)
-            await sendFinalFollowUpEmail(req);
-
-            // await createContact()
-        } catch (error) {
-            console.log(error)
-        }
-    }
-    emailAutomation()
 }
 
 module.exports = GmailLogic

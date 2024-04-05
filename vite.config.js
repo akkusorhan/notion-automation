@@ -1,9 +1,12 @@
-export default {
-    build: {
-        rollupOptions: {
-            input: {
-                main: "./app.js"
-            }
-        }
+// vite.config.js
+import { defineConfig } from 'vite';
+
+export default defineConfig({
+  build: {
+    rollupOptions: {
+      input: {
+        main: 'app.js'
+      }
     }
-}
+  }
+});

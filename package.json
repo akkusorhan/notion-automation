@@ -4,8 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node app.js"
+    "dev": "node app.js",
+    "start": "node app.js",
+    "deploy": "vercel --prod"
   },
   "author": "",
   "license": "ISC",
@@ -16,11 +17,11 @@
     "express": "^4.19.2",
     "google-auth-library": "^9.7.0",
     "googleapis": "^134.0.0",
+    "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.2.3",
     "mongoose-type-email": "^1.1.2",
     "node-schedule": "^2.1.1",
     "nodemailer": "^6.9.13",
-    "vercel": "^33.6.1",
-    "vite": "^5.2.3"
+    "vercel": "^33.6.1"
   }
 }

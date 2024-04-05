@@ -1,77 +1,108 @@
-// OAuth2 client using service account credentials
-const jwtClient = new JWT({
-    email: SERVICE_ACCOUNT_EMAIL,
-    key: PRIVATE_KEY,
-    scopes: ['https://www.googleapis.com/auth/gmail.send', 'https://www.googleapis.com/auth/gmail.readonly'],
-    redirectUri: 'urn:ietf:wg:oauth:2.0:oob' // Placeholder redirect URI
+/**
+ * Handling OAuth
+ */
+const privateKey = process.env.PRIVATE_KEY
+const serviceAccountEmail = process.env.SERVICE_ACCOUNT_EMAIL
 
+// Auth credentials & scope
+const auth = null = new google.auth.JWT({
+    email: serviceAccountEmail,
+    key: privateKey,
+    scopes: [
+        // 'https://www.googleapis.com/auth/gmail.send',
+        // 'https://www.googleapis.com/auth/gmail.readonly',
+        'https://www.googleapis.com/auth/gmail.modify',
+        // 'https://www.googleapis.com/auth/contacts'
+    ]
 })
 
-// OAuth2 authentication
+// // Set the access token manually
+// auth.credentials = {
+//     access_token: process.env.ACCESS_TOKEN
+// };
+
 async function authenticate() {
     try {
-        await jwtClient.authorize();
-        console.log("Authentication successful") //jwtClient.credentials
-        // Log access token
-        // console.log("Access Token:", jwtClient.credentials.access_token);
-        return jwtClient.credentials.access_token;
-
+        await auth.authorize() // This will automatically obtain and set the access token
+        console.log("Authorization successful")
+        return auth.credentials.access_token
     } catch (error) {
-        console.log("Error occurred during authentication: ", error)
+        console.error('Error occurred during authentication:', error);
     }
 }
 
-// Initialize authentication
-authenticate()
+/**
+ * Handling Google Contacts/People API
+ */
+const contacts = google.people({
+    version: "v1",
+    auth: auth
+})
 
-// Send email function
-async function sendEmail() {
+// Create the contact
+async function createContact() {
     try {
-        // create Nodemailer transporter using JWT client for authentication
-        const transporter = nodemailer.createTransport({
-            service: "gmail",
-            // host: 'smtp.gmail.com', // SMTP server hostname
-            // port: 587, // Port for TLS/STARTTLS encryption
-            // secure: false, // true for 465, false for other ports
-            auth: {
-                // type: "OAuth2",
-                user: process.env.SERVICE_ACCOUNT_EMAIL,
-                pass: process.env.SMTP_APP_PASSWORD
-                // accessToken: jwtClient.credentials.access_token // jwtClient.credentials.access_token
-            },
-            authMethod: "PLAIN"
-        })
-
-        // Define email options
-        const mailOptions = {
-            from: "",
-            to: "",
-            subject: "Test Email",
-            text: "This is a test email"
+        const contactData = {
+            "names": [
+                {
+                    "givenName": "Owen",
+                    "familyName": "Zurich"
+                }
+            ],
+            "emailAddresses": [
+                {
+                    "value": "owenzurich@gmail.com"
+                }
+            ],
+            "phoneNumbers": [
+                {
+                    "value": "2812434597"
+                }
+            ]
         }
 
-        // Send email
-        const info = await transporter.sendMail(mailOptions)
-        console.log("Email send successfully: ", info)
+        const response = await contacts.people.createContact({
+            requestBody: contactData
+        })
+        console.log('Contact created successfully:', response.data);
     } catch (error) {
-        console.error("Error occurred while sending email: ", error)
+        console.error('Error occurred while creating contact:', error);
     }
 }
 
-async function emailAutomation() {
-    try {
-        // await authenticate()
-        await sendEmail()
-    } catch (error) {
-        console.log(error)
-    }
+/**
+ * Check For Received Email
+ */
+async function searchEmailsBySender(req) {
+  try {
+      // Perform a search query for emails from the sender
+      let senderEmail = req.body.data.email
+
+      // Initialize the Gmail API
+      const gmail = google.gmail({
+          version: 'v1',
+          auth: auth
+      });
+
+      const response = await gmail.users.messages.list({
+          'userId': 'me', // process.env.SENDER_EMAIL, // 'me', // 'me' refers to the authenticated user
+          'q': `from:${senderEmail}`, // Search query to filter emails by sender
+
+      });
+
+      // Handle the response
+      const emails = response.data.messages;
+      if (emails && emails.length > 0) {
+          // Emails from the sender found
+          console.log(`Found ${emails.length} emails from ${senderEmail}:`);
+          emails.forEach((email) => {
+              console.log(`Email ID: ${email.id}`);
+              // You can retrieve more information about each email if needed
+          });
+      } else {
+          console.log(`No emails found from ${senderEmail}`);
+      }
+  } catch (error) {
+      console.error('Error searching emails:', error);
+  }
 }
-
-emailAutomation()
-
-// sendEmail()
-
-// Service account credentials
-const SERVICE_ACCOUNT_EMAIL = process.env.SERVICE_ACCOUNT_EMAIL // Service account email address
-const PRIVATE_KEY = process.env.PRIVATE_KEY // Service account private key (replace newlines with '\n')
-

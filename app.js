@@ -17,7 +17,6 @@ const notion = new Client({ auth: process.env.NOTION_API_KEY })
 const Contact = require("./models/contact")
 let port = process.env.PORT || 3000
 
-app.listen(port)
 app.use(express.json())
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
@@ -33,7 +32,7 @@ app.post("/newcontact", (req, res) => {
     /**
      * Handle Notion API POST Request
      */
-    createNotionDatabaseEntry(req)
+    // createNotionDatabaseEntry.createNotionDatabaseEntry(req)
     
     /**
      * Initiate email campaign
@@ -141,4 +140,8 @@ app.delete("/newcontact/:contactID", (req, res) => {
             error: err
         })
     })
+})
+
+app.listen(port, () => {
+
 })
