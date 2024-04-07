@@ -50,7 +50,7 @@ async function sendInitialEmail(req) {
 
         // Define email options
         const mailOptions = {
-            from: process.env.SENDER_EMAIL,
+            from: `Blackwader Media <${process.env.SENDER_EMAIL}>`,
             to: recipientEmail, // process.env.RECIPIENT_EMAIL,
             subject: recipientFirstName == "{{contact.Name.First}}" ? emailTemplates.leadGeneratedSubject : `${recipientFirstName} - ${emailTemplates.leadGeneratedSubject}`,
             // text: "This is a test email"
@@ -86,7 +86,7 @@ async function sendFirstFollowUpEmail(req) {
 
         // Define email options
         const mailOptions = {
-            from: process.env.SENDER_EMAIL,
+            from: `Blackwader Media <${process.env.SENDER_EMAIL}>`,
             to: recipientEmail, // process.env.RECIPIENT_EMAIL,
             subject: recipientFirstName == "{{contact.Name.First}}" ? emailTemplates.firstFollowBuSubject : `${recipientFirstName} - ${emailTemplates.firstFollowBuSubject}`,
             // text: "This is a test email"
@@ -122,7 +122,7 @@ async function sendSecondFollowUpEmail(req) {
 
         // Define email options
         const mailOptions = {
-            from: process.env.SENDER_EMAIL,
+            from: `Blackwader Media <${process.env.SENDER_EMAIL}>`,
             to: recipientEmail, // process.env.RECIPIENT_EMAIL,
             subject: recipientFirstName == "{{contact.Name.First}}" ? emailTemplates.secondFollowUpSubject : `${recipientFirstName} - ${emailTemplates.secondFollowUpSubject}`,
             // text: "This is a test email"
@@ -156,7 +156,7 @@ async function sendFinalFollowUpEmail(req) {
 
         // Define email options
         const mailOptions = {
-            from: process.env.SENDER_EMAIL,
+            from: `Blackwader Media <${process.env.SENDER_EMAIL}>`,
             to: recipientEmail, // process.env.RECIPIENT_EMAIL,
             subject: recipientFirstName == "{{contact.Name.First}}" ? emailTemplates.finalFollowUpSubject : `${recipientFirstName} - ${emailTemplates.finalFollowUpSubject}`,
             // text: "This is a test email"
