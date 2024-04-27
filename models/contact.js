@@ -10,6 +10,8 @@ const contactSchema = mongoose.Schema({
         phone: { type: String },
         service: { type: String },
         location: { type: String },
+        website: { type: String },
+        additionalInfo: { type: String },
         source: { type: String }
     }
 }, { collection: "notion-automation" })

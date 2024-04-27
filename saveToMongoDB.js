@@ -15,6 +15,8 @@ const saveToMongoDB = (req, res) => {
             phone: req.body.data.phone,
             service: req.body.data.service,
             location: req.body.data.location,
+            website: req.body.data.website,
+            additionalInfo: req.body.data.additionalInfo,
             source: req.body.data.source
         }
     })

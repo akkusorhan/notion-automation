@@ -59,6 +59,8 @@ app.get("/newcontact", (req, res) => {
                     phone: doc.data.phone,
                     service: doc.data.service,
                     location: doc.data.location,
+                    website: doc.data.website,
+                    additionalInfo: doc.data.additionalInfo,
                     source: doc.data.source,
                     id: doc._id,
                     request: {
