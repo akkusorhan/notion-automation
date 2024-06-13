@@ -37,8 +37,14 @@ async function GmailLogic(req) {
         console.log("NOTION ID FROM NEW FUNCTION:" + notionPageId)
 
         // Send First Email
+        let service = JSON.stringify(req.body.data.service)
         await new Promise(resolve => setTimeout(resolve, 7 * 60 * 1000)); // Wait 7 minutes before sending first email
-        await emailFunctions.sendInitialEmail(req)
+        if(service.includes("SEO")) {
+            await emailFunctions.sendSEOInitialEmail(req)
+        } else {
+            await emailFunctions.sendInitialEmail(req)
+        }
+        // await emailFunctions.sendInitialEmail(req) // req.body.data.firstName.includes("SEO") ? await emailFunctions.sendSEOInitialEmail(req) : 
         console.log("Notion page id:" + notionPageId)
 
         // Wait for 24 hours before calling the First Follow Up email

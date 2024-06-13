@@ -20,6 +20,17 @@ const emailTemplates = {
         --
         ${emailFooter}
     `,
+    seoLeadGeneratedSubject: "Improving Your SEO",
+    seoLeadGeneratedBody: 
+        `<p>I'm Orhan Akkus, an SEO specialist and Wix Partner. Thank you for reaching out through the Wix Marketplace. I received your request and would love to discuss your SEO project in more detail.</p>
+        <p>Let's schedule a time to talk about how we can improve your website's search engine optimization. You can book a time for us to connect using <a href="https://www.blackwader.com/booking-calendar/seo-inquiry?referral=service_list_widget">this link</a>. We can discuss the specifics over the phone, via email, or through a video conference, whichever works best for you.</p>
+        <p>We specialize in improving SEO through a comprehensive approach that includes keyword optimization, content creation, backlink building, and technical SEO enhancements. For instance, we recently increased organic (unpaid) website traffic by 2500% for Pathway Therapy Center, leading to more phone calls, leads, scheduled sessions, and significant brand exposure. You can read the full case study <a href="https://www.blackwader.com/seo">here</a>.</p>
+        <p>Please schedule a time, call us at <strong>+1 (949) 868-0338, or reply to this email</strong> with any details about your project and we can proceed from there. Looking forward to hearing from you. In the meantime, feel free to learn more about our SEO services <a href="https://www.blackwader.com/seo">here</a>.</p>
+        <p><strong>Btw, this isn't some automated campaign; I promise :)</strong></p>
+        <p>Kind Regards,</p>
+        --
+        ${emailFooter}
+    `,
     firstFollowBuSubject: "Your Wix Project",
     firstFollowUpBody: 
         `<p>Any updates? We haven't heard back from our previous email, so we thought we'd try you again just in case our first email hit your spam or just got lost in your inbox. </p>

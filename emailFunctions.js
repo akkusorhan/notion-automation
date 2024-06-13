@@ -69,6 +69,44 @@ async function sendInitialEmail(req) {
     }
 }
 
+
+// SEO Lead Generated Email
+async function sendSEOInitialEmail(req) {
+    let recipientFirstName = req.body.data.firstName
+    let recipientEmail = req.body.data.email
+
+    try {
+        const transporter = nodemailer.createTransport({
+            service: "gmail",
+            auth: {
+                user: process.env.SENDER_EMAIL,
+                pass: process.env.SMTP_APP_PASSWORD
+            },
+            authMethod: "PLAIN"
+        })
+
+        // Define email options
+        const mailOptions = {
+            from: `Blackwader Media <${process.env.SENDER_EMAIL}>`,
+            to: recipientEmail, // process.env.RECIPIENT_EMAIL,
+            subject: recipientFirstName == "{{contact.Name.First}}" ? emailTemplates.seoLeadGeneratedSubject : `${recipientFirstName} - ${emailTemplates.seoLeadGeneratedSubject}`,
+            // text: "This is a test email"
+            html: `
+                <p style="margin-bottom: 30px;">Hi ${recipientFirstName == "{{contact.Name.First}}" ? "There" : recipientFirstName},</p>
+
+                ${emailTemplates.seoLeadGeneratedBody}
+            `
+        }
+
+        // Send email
+        const info = await transporter.sendMail(mailOptions)
+        console.log("Email sent successfully: ", info)
+    } catch (error) {
+        console.error("Error occurred while sending email: ", error)
+    }
+}
+
+
 // First Follow Up Email
 async function sendFirstFollowUpEmail(req) {
     let recipientFirstName = req.body.data.firstName
@@ -176,6 +214,7 @@ async function sendFinalFollowUpEmail(req) {
 module.exports = {
     sendNotificationEmail,
     sendInitialEmail,
+    sendSEOInitialEmail,
     sendFirstFollowUpEmail,
     sendSecondFollowUpEmail,
     sendFinalFollowUpEmail
